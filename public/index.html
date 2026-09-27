@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Family Cart MVP · Technical Proposal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --bg:#ffffff;--bg2:#fafafa;--bg3:#f4f4f5;--line:#eaeaea;--line2:#f1f1f1;
+  --fg:#111111;--fg2:#444444;--mute:#6b6b6b;--faint:#9a9a9a;
+  --acc:#1f4e79;--acc2:#e8f0f7;--ok:#1a7f4b;--okbg:#e9f6ef;--warn:#a1620b;--warnbg:#fdf4e5;--err:#b42318;--errbg:#fdecea;
+  --H:#1f4e79;--C:#b4543a;--N:#3f7d5c;--L:#8a6a3b;
+  --sea:#eef3f6;--land:#efe7d6;--shore:#d8c9a8;--road:#8d8579;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;--mono:'JetBrains Mono',ui-monospace,SFMono-Regular,monospace;--serif:'Newsreader',Georgia,serif;
+  --top:52px;--side:236px;
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + var(--top) + 12px);height:100%}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;min-height:100%}
+button{font:inherit;color:inherit}
+
+/* top bar */
+.top{position:fixed;top:0;left:0;right:0;height:calc(var(--top) + env(safe-area-inset-top,0px));padding-top:env(safe-area-inset-top,0px);background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid var(--line);z-index:50;display:flex;align-items:center}
+.top-in{display:flex;align-items:center;gap:14px;width:100%;padding:0 20px;height:var(--top)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;white-space:nowrap}
+.mark{width:22px;height:22px;border-radius:5px;background:var(--acc);display:grid;place-items:center}
+.crumb{color:var(--faint)}
+.ver{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--mute)}
+.top-sp{flex:1}
+.top-meta{font-size:12px;color:var(--mute);white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:6px;border:1px solid var(--line);background:#fff;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:#cfcfcf;background:var(--bg2)}
+.btn.pri{background:var(--fg);color:#fff;border-color:var(--fg)}
+.btn.pri:hover{background:#333}
+.btn.acc{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.acc:hover{filter:brightness(1.1)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.sm{height:28px;padding:0 10px;font-size:12px}
+
+/* layout */
+.shell{display:grid;grid-template-columns:var(--side) minmax(0,1fr);padding-top:calc(var(--top) + env(safe-area-inset-top,0px));min-height:100vh}
+.side{position:sticky;top:calc(var(--top) + env(safe-area-inset-top,0px));height:calc(100vh - var(--top) - env(safe-area-inset-top,0px));overflow-y:auto;border-right:1px solid var(--line);background:var(--bg2);padding:18px 12px 30px}
+.side h6{font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;margin:16px 10px 6px}
+.side h6:first-child{margin-top:0}
+.nav{display:flex;align-items:center;gap:8px;width:100%;text-align:left;border:0;background:none;padding:6px 10px;border-radius:6px;font-size:13.5px;color:var(--fg2);cursor:pointer}
+.nav:hover{background:var(--bg3);color:var(--fg)}
+.nav.on{background:#fff;color:var(--fg);font-weight:600;box-shadow:0 0 0 1px var(--line)}
+.nav .n{font-family:var(--mono);font-size:10.5px;color:var(--faint);width:18px}
+.nav .live{margin-left:auto;font-size:10px;font-weight:600;color:var(--ok);background:var(--okbg);border-radius:999px;padding:0 6px}
+.main{padding:32px 40px 80px;min-width:0}
+.page{display:none}.page.on{display:block}
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .side{position:sticky;height:auto;border-right:0;border-bottom:1px solid var(--line);padding:6px 10px;display:flex;gap:4px;overflow-x:auto;z-index:40;scrollbar-width:none}
+  .side::-webkit-scrollbar{display:none}
+  .side h6{display:none}
+  .nav{flex:0 0 auto;width:auto;white-space:nowrap}
+  .nav .live{display:none}
+  .main{padding:22px 16px 60px}
+  .top-meta,.crumb,.crumb+span,.ver{display:none}
+}
+
+/* type */
+.eyebrow{font-family:var(--mono);font-size:11.5px;color:var(--mute);margin-bottom:6px}
+h1{font-size:30px;line-height:1.2;font-weight:700;letter-spacing:-.02em}
+h2{font-size:21px;font-weight:650;letter-spacing:-.015em;margin:36px 0 4px}
+h2:first-child{margin-top:0}
+h3{font-size:14px;font-weight:600;margin:22px 0 8px}
+.lead{font-size:15.5px;color:var(--fg2);max-width:760px;margin-top:8px}
+p{color:var(--fg2);max-width:760px}
+.sub{color:var(--mute);font-size:13px;margin:2px 0 14px;max-width:760px}
+.mono{font-family:var(--mono)}
+.m{color:var(--mute)}
+code{font-family:var(--mono);font-size:12px;background:var(--bg3);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+
+/* components */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+@media(max-width:1200px){.g5,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.g2,.g3,.g4,.g5{grid-template-columns:1fr}}
+.panel{border:1px solid var(--line);border-radius:8px;background:#fff;min-width:0}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13px;font-weight:600}
+.ph .m{font-weight:400;font-size:12px}
+.pb{padding:14px}
+.pb.tight{padding:0}
+.stat{border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.stat .k{font-size:12px;color:var(--mute)}
+.stat .v{font-size:24px;font-weight:600;letter-spacing:-.02em;margin-top:2px}
+.stat .d{font-size:12px;color:var(--mute);margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;font-size:11px;font-weight:500;border:1px solid var(--line);color:var(--fg2);background:#fff;white-space:nowrap}
+.badge.ok{color:var(--ok);background:var(--okbg);border-color:transparent}
+.badge.warn{color:var(--warn);background:var(--warnbg);border-color:transparent}
+.badge.err{color:var(--err);background:var(--errbg);border-color:transparent}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.callout{display:flex;gap:10px;border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:14px 0;background:var(--bg2);font-size:13px;color:var(--fg2)}
+.callout .i{flex:0 0 18px;height:18px;border-radius:50%;background:var(--acc);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+.callout.warn{background:var(--warnbg);border-color:#f3dfb8}.callout.warn .i{background:var(--warn)}
+.callout b{color:var(--fg)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--mute);font-size:12px;padding:9px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--bg2)}
+td{padding:9px 14px;border-bottom:1px solid var(--line2);color:var(--fg2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td b{color:var(--fg);font-weight:600}
+.r{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.code{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:12px 0;min-width:0}
+.code .fn{display:flex;justify-content:space-between;padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+.code pre{margin:0;padding:14px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.6;background:#fff;color:#24292f}
+.k1{color:#cf222e}.k2{color:#0550ae}.k3{color:#0a3069}.k4{color:#6e7781}.k5{color:#8250df}
+.fig{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;min-width:0}
+.fig .cap{font-size:12px;color:var(--mute);padding:8px 14px;border-top:1px solid var(--line);background:var(--bg2)}
+svg{display:block}
+svg text{font-family:var(--sans)}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:48px;padding-top:18px;border-top:1px solid var(--line)}
+.pager button{flex:1;max-width:340px;text-align:left;border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:#fff;cursor:pointer}
+.pager button:hover{border-color:#cfcfcf}
+.pager button .l{font-size:12px;color:var(--mute)}
+.pager button .t{font-weight:600;margin-top:2px}
+.pager button.nx{text-align:right;margin-left:auto}
+.pager button[hidden]{display:none}
+.lens{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500}
+
+/* demo */
+.demo{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:14px;align-items:start}
+@media(max-width:1100px){.demo{grid-template-columns:1fr}}
+.board-wrap{position:relative;background:var(--sea)}
+.node{cursor:default}
+.node.reach{cursor:pointer}
+.node.reach .ring{stroke:var(--acc);stroke-width:2;fill:rgba(31,78,121,.12);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{r:12}50%{r:15}}
+#token{transition:transform .45s cubic-bezier(.4,0,.2,1)}
+.hud{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.hud .sep{width:1px;height:16px;background:var(--line)}
+.act{padding:14px;min-height:230px}
+.act h4{font-size:15px;font-weight:600;margin-bottom:4px}
+.act .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.choice{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:6px;background:#fff;padding:10px 12px;margin-top:8px;cursor:pointer;font-size:13.5px}
+.choice:hover{border-color:var(--acc);background:var(--acc2)}
+.choice.right{border-color:var(--ok);background:var(--okbg);color:var(--ok);font-weight:600}
+.choice.wrong{border-color:var(--err);background:var(--errbg);color:var(--err)}
+.choice[disabled]{cursor:default}
+.tierbtn{flex:1;min-width:90px;border:1px solid var(--line);border-radius:6px;background:#fff;padding:10px;cursor:pointer;text-align:left}
+.tierbtn:hover{border-color:var(--acc)}
+.tierbtn .p{font-family:var(--mono);font-size:18px;font-weight:600}
+.tierbtn .l{font-size:12px;color:var(--mute)}
+.mini-card{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;flex:1;min-width:140px;background:#fff}
+.mini-card:hover{border-color:var(--acc)}
+.pp-row{display:grid;grid-template-columns:78px 1fr 28px;gap:10px;align-items:center;padding:5px 0;font-size:12.5px}
+.ticks{display:flex;gap:3px}
+.tk{width:13px;height:13px;border-radius:3px;border:1px solid var(--line);background:#fff}
+.tk.cap{margin-right:6px}
+.log{font-family:var(--mono);font-size:11.5px;color:var(--mute);max-height:170px;overflow:auto;padding:10px 14px;line-height:1.7}
+.log div b{color:var(--fg);font-weight:500}
+.fb{margin-top:10px;padding:10px 12px;border-radius:6px;font-size:13px}
+.fb.ok{background:var(--okbg);color:var(--ok)}.fb.no{background:var(--errbg);color:var(--err)}.fb.info{background:var(--bg3);color:var(--fg2)}
+input[type=number],select{font-family:var(--mono);font-size:13px;height:32px;padding:0 10px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--fg)}
+input[type=number]{width:120px}
+input[type=range]{width:100%;accent-color:var(--acc)}
+/* sample cards */
+.scard{border:1px solid var(--line);border-radius:10px;background:#fffdf9;overflow:hidden}
+.scard .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.scard .loc{font-family:var(--serif);font-size:17px;font-weight:600}
+.scard .tr{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:9px 12px;border-bottom:1px dashed var(--line);cursor:pointer}
+.scard .tr:last-child{border-bottom:0}
+.scard .tr:hover{background:#fbf7ef}
+.scard .pip{font-family:var(--mono);font-size:11px;font-weight:600;color:#fff;border-radius:4px;height:20px;display:grid;place-items:center}
+.scard .ans{font-family:var(--mono);font-size:11.5px;color:var(--mute);margin-top:3px;filter:blur(4px);transition:filter .2s}
+.scard .tr.show .ans{filter:none;color:var(--ok)}
+.heat td.r{font-size:12px}
+.bar{height:8px;border-radius:4px;background:var(--acc)}
+.track{background:var(--bg3);border-radius:4px;overflow:hidden}
+footer{margin-top:28px;font-size:12px;color:var(--faint)}
+
+:root{--acc:#2f5d50;--acc2:#e9f2ee}
+.proto{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+@media(max-width:1100px){.proto{grid-template-columns:1fr}}
+.browser{min-width:0;border-right:1px solid var(--line)}
+.chrome{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f1f3f4;border-bottom:1px solid var(--line)}
+.chrome .dots span{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;background:#d6d6d6}
+.chrome .url{flex:1;background:#fff;border-radius:999px;padding:5px 12px;font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+.chrome .ext{width:26px;height:26px;border-radius:6px;background:var(--acc);display:grid;place-items:center;color:#fff;font-size:13px}
+.shop{padding:14px}
+.shop-h{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#1f2937;color:#fff;border-radius:8px;font-size:13px}
+.shop-h b{font-size:15px}
+.grid-p{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px}
+.pc{border:1px solid var(--line);border-radius:8px;padding:10px;position:relative;background:#fff}
+.pc .img{height:70px;border-radius:6px;background:#f6f6f4;display:grid;place-items:center;font-size:30px}
+.pc .nm{font-size:12.5px;font-weight:500;margin-top:8px;min-height:32px}
+.pc .pr{font-family:var(--mono);font-size:13px;font-weight:600;margin-top:2px}
+.pc .add{width:100%;margin-top:8px;height:28px;border-radius:999px;border:0;background:#f5c542;font-size:12px;font-weight:600;cursor:pointer}
+.fc-chip{position:absolute;top:8px;right:8px;height:22px;padding:0 8px;border-radius:999px;border:1px solid var(--acc);background:#fff;color:var(--acc);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
+.fc-chip.set{background:var(--acc);color:#fff}
+.pop{position:absolute;top:34px;right:8px;z-index:5;width:210px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:10px}
+.pop .t{font-size:12px;font-weight:600;margin-bottom:6px}
+.pop .mb{display:flex;flex-wrap:wrap;gap:5px}
+.pop .mb button{height:26px;padding:0 9px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:11.5px;cursor:pointer}
+.pop .mb button:hover{border-color:var(--acc);color:var(--acc)}
+.pop select{width:100%;margin-top:8px;height:28px;font-size:12px}
+.rcart{margin-top:14px;border:1px solid var(--line);border-radius:8px}
+.rcart .h{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px}
+.rline{display:grid;grid-template-columns:22px 34px minmax(0,1fr) 54px 70px;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line2);font-size:12.5px;transition:background .3s}
+.rline:last-child{border-bottom:0}
+.rline.flash{background:#fff7da}
+.rline input{width:15px;height:15px;accent-color:#e47911}
+.rsum{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg2);font-size:13px;gap:8px;flex-wrap:wrap}
+.ck{height:32px;padding:0 14px;border-radius:8px;border:0;background:#f5c542;font-weight:600;font-size:12.5px;cursor:pointer}
+/* extension panel */
+.xp{display:flex;flex-direction:column;min-height:640px;background:#fbfbfa}
+.xh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);background:#fff}
+.xh .lg{width:24px;height:24px;border-radius:6px;background:var(--acc);display:grid;place-items:center;color:#fff;font-size:12px;font-weight:700}
+.xtabs{display:flex;border-bottom:1px solid var(--line);background:#fff}
+.xtabs button{flex:1;height:36px;border:0;background:none;font-size:12.5px;font-weight:500;color:var(--mute);border-bottom:2px solid transparent;cursor:pointer}
+.xtabs button.on{color:var(--acc);border-bottom-color:var(--acc)}
+.xb{flex:1;overflow:auto;padding:10px 12px}
+.grp{border:1px solid var(--line);border-radius:8px;background:#fff;margin-bottom:8px;overflow:hidden}
+.grp .gh{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;padding:9px 10px;cursor:pointer}
+.grp .gh b{font-size:13px}
+.grp .gh .s{font-family:var(--mono);font-size:12px;color:var(--mute)}
+.gl{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid var(--line2);font-size:12.5px}
+.gl .oc{font-size:10.5px;color:var(--mute)}
+.gl .p{font-family:var(--mono);font-size:12px}
+input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px}
+.xf{border-top:1px solid var(--line);background:#fff;padding:10px 12px}
+.xf .sel{font-size:12.5px;color:var(--fg2)}
+.xf .tot{font-family:var(--mono);font-size:18px;font-weight:600;margin:2px 0 8px}
+.xf .row{display:flex;gap:6px}
+.xf .row .btn{flex:1;justify-content:center}
+.mem{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;margin-bottom:6px}
+.mem input{border:0;font:inherit;font-size:13px;font-weight:500;background:transparent;width:100%}
+.mem .ac{display:flex;gap:3px}
+.mem .ac button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:#fff;font-size:11px;cursor:pointer}
+.mem.arch{opacity:.5}
+.alog{font-family:var(--mono);font-size:11px;color:var(--mute);line-height:1.6;margin-top:8px;max-height:120px;overflow:auto}
+.alog b{color:var(--fg);font-weight:500}
+.at{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line2);font-size:13px}
+.at .b{flex:0 0 18px;height:18px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:10px;margin-top:1px}
+.at.pass .b{background:var(--ok);border-color:var(--ok);color:#fff}
+.at.fail .b{background:var(--err);border-color:var(--err);color:#fff}
+.at.run .b{border-color:var(--acc);animation:spin 1s linear infinite;border-top-color:transparent}
+@keyframes spin{to{transform:rotate(360deg)}}
+.at .d{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:#111;color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;transition:transform .3s;z-index:99}
+.toast.on{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="top-in">
+  <div class="brand"><div class="mark" style="background:#2f5d50"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M1.5 3h1.4l1.2 5.2h5.2L10.5 4.5H3.4" fill="none" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><circle cx="4.8" cy="10" r=".9" fill="#fff"/><circle cx="8.6" cy="10" r=".9" fill="#fff"/></svg></div>Family Cart</div>
+  <span class="crumb">/</span><span style="font-size:14px;color:var(--fg2)">MVP proposal</span>
+  <span class="ver">Phase 0 + MVP</span>
+  <div class="top-sp"></div>
+  <span class="top-meta">Prepared by Eduardo · Sep 2026</span>
+  <button class="btn pri" data-go="demo">▶ Try the prototype</button>
+</div></header>
+
+<div class="shell">
+<nav class="side" id="side"></nav>
+<main class="main">
+
+<!-- OVERVIEW -->
+<div class="page" id="p-overview">
+  <div class="eyebrow">Overview</div>
+  <h1>Family Cart MVP</h1>
+  <p class="lead">A Chrome extension that sits beside the retailer's cart: assign items to family members, see totals per person, select what to buy, and hand exactly that selection to the retailer's own checkout.</p>
+  <div class="callout warn"><div class="i">!</div><div><b>Most significant technical risk:</b> Amazon's cart page is undocumented and changes without notice (layout tests, regional variants, identical items merged into one line). The integration must be anchored to stable product IDs, verify every action by reading the cart back, and fall back to a guided mode that never breaks, instead of relying on fragile clicks.</div></div>
+  <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap"><button class="btn acc" data-go="demo">▶ Run your acceptance test</button><button class="btn" data-go="phase0">Phase 0 plan</button></div>
+  <div class="grid g4" style="margin-top:24px">
+    <div class="stat"><div class="k">Phase 0</div><div class="v">$400</div><div class="d">fixed · 3 working days</div></div>
+    <div class="stat"><div class="k">Full MVP</div><div class="v">$2,700–3,200</div><div class="d">milestones 1–6</div></div>
+    <div class="stat"><div class="k">MVP timeline</div><div class="v">3 weeks</div><div class="d">after Phase 0 go</div></div>
+    <div class="stat"><div class="k">Permissions</div><div class="v">3</div><div class="d">storage · sidePanel · amazon.com</div></div>
+  </div>
+  <h2>Your 12 questions</h2>
+  <div class="panel scroll"><table>
+    <thead><tr><th>#</th><th>Question</th><th>Short answer</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td class="mono m">1</td><td>Extensions built</td><td>Agents.ai Chrome extension (MV3), demo + backend board in the proposal</td><td><button class="badge" style="cursor:pointer" data-go="plan">Plan →</button></td></tr>
+      <tr><td class="mono m">2</td><td>MV3 / content scripts / dynamic sites</td><td>Service worker, content scripts with MutationObserver, side panel, storage</td><td><button class="badge" style="cursor:pointer" data-go="arch">Architecture →</button></td></tr>
+      <tr><td class="mono m">3</td><td>Cart / product page work</td><td>Amazon page flow in the Agents.ai demo; product identity by ASIN, never by position</td><td><button class="badge" style="cursor:pointer" data-go="phase0">Phase 0 →</button></td></tr>
+      <tr><td class="mono m">4</td><td>Phase 0 approach</td><td>Test matrix, measured go / no-go thresholds, three checkout strategies</td><td><button class="badge" style="cursor:pointer" data-go="phase0">Phase 0 →</button></td></tr>
+      <tr><td class="mono m">5</td><td>Technical risks</td><td>8 specific risks with mitigations</td><td><button class="badge" style="cursor:pointer" data-go="risks">Risks →</button></td></tr>
+      <tr><td class="mono m">6</td><td>Stack</td><td>TypeScript · WXT (MV3 framework) · Preact · Zod · Vitest · Playwright</td><td><button class="badge" style="cursor:pointer" data-go="arch">Architecture →</button></td></tr>
+      <tr><td class="mono m">7</td><td>Adding retailers</td><td>Core never touches the DOM; each retailer is one adapter behind a fixed interface</td><td><button class="badge" style="cursor:pointer" data-go="arch">Architecture →</button></td></tr>
+      <tr><td class="mono m">8</td><td>Permissions</td><td>storage, sidePanel, host access to amazon.com only</td><td><button class="badge" style="cursor:pointer" data-go="privacy">Privacy →</button></td></tr>
+      <tr><td class="mono m">9</td><td>Phase 0 quote</td><td>$400 fixed</td><td><button class="badge" style="cursor:pointer" data-go="plan">Plan →</button></td></tr>
+      <tr><td class="mono m">10</td><td>MVP range</td><td>$2,700–3,200 required · optional items priced separately</td><td><button class="badge" style="cursor:pointer" data-go="plan">Plan →</button></td></tr>
+      <tr><td class="mono m">11</td><td>Timeline by milestone</td><td>Phase 0: 3 days · MVP: 15 working days</td><td><button class="badge" style="cursor:pointer" data-go="plan">Plan →</button></td></tr>
+      <tr><td class="mono m">12</td><td>Support</td><td>30-day bug-fix warranty · $30/h after · optional retailer watch</td><td><button class="badge" style="cursor:pointer" data-go="plan">Plan →</button></td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- DEMO -->
+<div class="page" id="p-demo">
+  <div class="eyebrow">Interactive prototype</div>
+  <h1>Try Family Cart</h1>
+  <p class="sub">Left: a mock retailer page (not Amazon, same cart mechanics). Right: the extension's side panel. Assign products, select, and press Purchase Selected. Or run your acceptance test automatically.</p>
+  <div class="panel" style="margin-bottom:14px"><div class="ph">Your acceptance test <span style="display:flex;gap:6px"><button class="btn sm" id="resetBtn">Reset demo</button><button class="btn sm acc" id="atBtn">▶ Run acceptance test</button></span></div><div class="pb" id="atList" style="padding-top:6px;padding-bottom:6px"><p class="m" style="font-size:13px;padding:6px 0">Runs every step of your acceptance test against the prototype and checks each result. Watch both panels update.</p></div></div>
+  <div class="proto">
+    <div class="browser">
+      <div class="chrome"><span class="dots"><span></span><span></span><span></span></span><span class="url">https://retailer.example/cart</span><span class="ext" title="Family Cart">🛒</span></div>
+      <div class="shop">
+        <div class="shop-h"><b>ShopDemo</b><span>mock retailer · for demonstration</span></div>
+        <div class="grid-p" id="grid"></div>
+        <div class="rcart"><div class="h"><b>Retailer cart</b><button class="btn sm" id="deselAll">Deselect all items</button></div><div id="rlines"></div>
+          <div class="rsum"><span id="rsub"></span><button class="ck" id="checkoutBtn">Proceed to checkout</button></div></div>
+      </div>
+    </div>
+    <div class="xp">
+      <div class="xh"><div class="lg">F</div><b style="font-size:14px">Family Cart</b><span class="badge" style="margin-left:auto" id="adapterBadge">Retailer adapter · healthy</span></div>
+      <div class="xtabs"><button data-x="cart" class="on">Cart</button><button data-x="family">Family</button><button data-x="history">History</button></div>
+      <div class="xb" id="xb"></div>
+      <div class="xf" id="xf"></div>
+    </div>
+  </div>
+  <div class="callout"><div class="i">i</div><div><b>What Purchase Selected does here:</b> it ticks the retailer's own cart checkboxes to match your selection (adding any missing items), then reads the cart back to verify count and subtotal. Checkout stays the retailer's button, and Family Cart never presses it.</div></div>
+</div>
+
+<!-- PHASE 0 -->
+<div class="page" id="p-phase0">
+  <div class="eyebrow">Phase 0 · feasibility</div>
+  <h1>Is Amazon reliable enough to build on?</h1>
+  <p class="sub">Three working days. The output is a go / no-go decision backed by measurements, plus a working proof of concept.</p>
+  <h2>Three ways to prepare checkout</h2>
+  <div class="grid g3" style="margin-top:12px">
+    <div class="panel pb"><div class="badge ok" style="display:flex;width:max-content;margin-bottom:10px">Preferred</div><b>A · Match the cart's own checkboxes</b><p class="m" style="font-size:13px;margin-top:6px">Amazon's cart lets shoppers tick which items go to checkout. Family Cart sets those ticks to match the selection when the user clicks, then verifies the subtotal. Visible and reversible, and nothing is purchased.</p></div>
+    <div class="panel pb"><div class="badge" style="display:flex;width:max-content;margin-bottom:10px">For missing items</div><b>B · Add-to-cart link</b><p class="m" style="font-size:13px;margin-top:6px">If a selected item isn't in the cart yet, add it with a standard add-to-cart request by product ID and quantity. Phase 0 checks the method is permitted and stable.</p></div>
+    <div class="panel pb"><div class="badge warn" style="display:flex;width:max-content;margin-bottom:10px">Always works</div><b>C · Guided mode</b><p class="m" style="font-size:13px;margin-top:6px">No automation: Family Cart highlights the selected lines and the user ticks them. This is the fallback whenever the adapter's health check fails.</p></div>
+  </div>
+  <h2>Test matrix</h2>
+  <div class="panel scroll"><table>
+    <thead><tr><th>Case</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td><b>Size / colour variants</b></td><td>each variant has its own ID; assignment must follow the variant</td></tr>
+      <tr><td><b>Same item for two children</b></td><td>the cart merges it into one line with quantity 2; selection must split quantity</td></tr>
+      <tr><td><b>Third-party sellers</b></td><td>same product, different offer and price</td></tr>
+      <tr><td><b>Price change after assignment</b></td><td>totals must use the cart's current price, with a visible change note</td></tr>
+      <tr><td><b>Saved for later / out of stock</b></td><td>not eligible for selection</td></tr>
+      <tr><td><b>Subscribe & Save, gift options</b></td><td>different line layouts</td></tr>
+      <tr><td><b>Grocery carts (Fresh, Whole Foods)</b></td><td>separate carts; proposed as out of scope for V1</td></tr>
+      <tr><td><b>Cart edited in another tab or on the phone</b></td><td>assignments must reconcile, not duplicate</td></tr>
+    </tbody>
+  </table></div>
+  <h2>Go / no-go thresholds</h2>
+  <div class="grid g2">
+    <div class="panel scroll"><table><tbody>
+      <tr><td>Product ID read correctly</td><td class="r">100% of test lines</td></tr>
+      <tr><td>Price and quantity match what's displayed</td><td class="r">100%</td></tr>
+      <tr><td>Selection applied and verified (strategy A)</td><td class="r">≥ 98% of runs</td></tr>
+      <tr><td>Failures detected and sent to guided mode</td><td class="r">100%</td></tr>
+      <tr><td>Orders placed by the extension</td><td class="r">0, by design</td></tr>
+    </tbody></table></div>
+    <div class="panel pb"><b style="font-size:13px">Phase 0 deliverables</b><div style="font-size:13px;color:var(--fg2);margin-top:8px;line-height:1.9">
+      ✓ Working MV3 proof of concept on amazon.com<br>✓ Measured results for every case above<br>✓ Recorded fixture pages for regression tests<br>✓ Limitations, policy notes and alternatives<br>✓ Go / no-go recommendation and a firm MVP quote</div></div>
+  </div>
+  <div class="callout"><div class="i">i</div><div>Phase 0 also checks the Chrome Web Store single-purpose and user-data policies and Amazon's terms for how the extension may interact with the cart. Everything runs only on pages the user opens and only when they click; there is no background crawling.</div></div>
+</div>
+
+<!-- ARCH -->
+<div class="page" id="p-arch">
+  <div class="eyebrow">Architecture</div>
+  <h1>Core + retailer adapters</h1>
+  <p class="sub">Family Cart's logic never touches a web page. Each retailer is one adapter behind a fixed interface.</p>
+  <div class="fig scroll"><svg id="archSvg" viewBox="0 0 1000 300" width="100%" style="min-width:780px"></svg><div class="cap">Adding Walmart or Target means adding one adapter folder and its fixture tests. Core, UI and storage stay unchanged.</div></div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="code" style="margin:0"><div class="fn"><span>core/adapter.ts</span><span>the only contract</span></div><pre><span class="k1">export interface</span> <span class="k5">RetailerAdapter</span> {
+  id: <span class="k3">'amazon-us'</span> | <span class="k3">'walmart'</span> | <span class="k3">'target'</span>;
+  matches(url: URL): boolean;
+  healthCheck(): <span class="k5">Health</span>;                <span class="k4">// selectors still valid?</span>
+  readProductPage(): <span class="k5">ProductRef</span> | <span class="k1">null</span>;
+  readCart(): <span class="k5">CartLine</span>[];                <span class="k4">// id, title, price, qty</span>
+  applySelection(s: <span class="k5">Selection</span>): Promise&lt;<span class="k5">ApplyResult</span>&gt;;
+  capabilities: { checkboxes: boolean; addById: boolean };
+}
+
+<span class="k1">export type</span> <span class="k5">ApplyResult</span> =
+  | { ok: <span class="k1">true</span>;  verified: { count: number; subtotalCents: number } }
+  | { ok: <span class="k1">false</span>; reason: <span class="k3">'UNHEALTHY'</span> | <span class="k3">'MISMATCH'</span>; guided: <span class="k5">GuidedStep</span>[] };</pre></div>
+    <div class="code" style="margin:0"><div class="fn"><span>core/model.ts</span><span>money in integer cents</span></div><pre><span class="k1">type</span> <span class="k5">Member</span>     = { id; name; order; archived: boolean };
+<span class="k1">type</span> <span class="k5">Occasion</span>   = <span class="k3">'everyday'</span> | <span class="k3">'school'</span> | <span class="k3">'birthday'</span>
+                 | <span class="k3">'christmas'</span> | <span class="k3">'other'</span>;
+<span class="k1">type</span> <span class="k5">Assignment</span> = {
+  id; retailer; productId;                 <span class="k4">// e.g. ASIN</span>
+  title; priceCents; qty: <span class="k2">1</span>;             <span class="k4">// one unit per person</span>
+  memberId; occasion?: <span class="k5">Occasion</span>;
+  status: <span class="k3">'active'</span> | <span class="k3">'purchased'</span>; purchasedAt?;
+};
+
+<span class="k4">// totals are sums of integers: no 0.1 + 0.2 errors</span>
+<span class="k1">export const</span> total = (a: <span class="k5">Assignment</span>[]) =&gt;
+  a.reduce((s, x) =&gt; s + x.priceCents * x.qty, <span class="k2">0</span>);</pre></div>
+  </div>
+  <h2>Stack</h2>
+  <div class="panel scroll"><table><tbody>
+    <tr><td><b>TypeScript</b></td><td>type-safe money, IDs and adapter contracts</td></tr>
+    <tr><td><b>WXT</b></td><td>MV3 framework: builds service worker, content scripts and side panel; hot reload; Web Store zip</td></tr>
+    <tr><td><b>Preact</b></td><td>React-style UI at a fraction of the size, fast side panel</td></tr>
+    <tr><td><b>chrome.storage.local + Zod</b></td><td>local-first data with schema validation and versioned migrations</td></tr>
+    <tr><td><b>Vitest</b></td><td>totals, selection and assignment logic</td></tr>
+    <tr><td><b>Playwright + saved cart pages</b></td><td>adapter regression tests; catches retailer layout changes before users do</td></tr>
+  </tbody></table></div>
+</div>
+
+<!-- PRIVACY -->
+<div class="page" id="p-privacy">
+  <div class="eyebrow">Permissions & privacy</div>
+  <h1>Only what's needed</h1>
+  <p class="sub">Three permissions. Everything stays on the user's device.</p>
+  <div class="grid g2">
+    <div class="panel scroll"><div class="ph">Requested</div><table><tbody>
+      <tr><td class="mono"><b>storage</b></td><td>save family members, assignments and history locally</td></tr>
+      <tr><td class="mono"><b>sidePanel</b></td><td>show Family Cart next to the retailer page</td></tr>
+      <tr><td class="mono"><b>host: www.amazon.com/*</b></td><td>content script runs on Amazon pages only</td></tr>
+    </tbody></table></div>
+    <div class="panel scroll"><div class="ph">Not requested</div><table><tbody>
+      <tr><td class="mono">&lt;all_urls&gt;</td><td>no access to other websites</td></tr>
+      <tr><td class="mono">history / tabs</td><td>no browsing history</td></tr>
+      <tr><td class="mono">cookies</td><td>no retailer sessions or passwords</td></tr>
+      <tr><td class="mono">remote servers</td><td>no account, no analytics in V1</td></tr>
+    </tbody></table></div>
+  </div>
+  <h2>Data stored</h2>
+  <div class="panel scroll"><table>
+    <thead><tr><th>Stored</th><th>Never stored</th></tr></thead>
+    <tbody>
+      <tr><td>family display names, order, archived flag</td><td>birth dates, photos, ages</td></tr>
+      <tr><td>product ID, title, price, quantity, occasion</td><td>payment details, addresses, passwords</td></tr>
+      <tr><td>purchase date when the user marks it</td><td>browsing outside the cart and product pages</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><div class="i">i</div><div>Each future retailer adds only its own host permission when that adapter ships. The Web Store listing includes a short privacy policy matching this table.</div></div>
+</div>
+
+<!-- RISKS -->
+<div class="page" id="p-risks">
+  <div class="eyebrow">Risks</div>
+  <h1>Specific technical risks</h1>
+  <p class="sub">Each risk has a mitigation and gets tested in Phase 0.</p>
+  <div class="panel scroll"><table>
+    <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td><b>Retailer layout changes</b></td><td><span class="badge err">high</span></td><td>ID-anchored reading, multiple locator strategies, health check on load, automatic guided mode</td></tr>
+      <tr><td><b>Identical items merged into one line</b></td><td><span class="badge err">high</span></td><td>assignments hold 1 unit each; selection adjusts line quantity and restores the rest</td></tr>
+      <tr><td><b>Retailer terms on automation</b></td><td><span class="badge warn">medium</span></td><td>user-initiated actions on open pages only; strategy C if A/B aren't appropriate</td></tr>
+      <tr><td><b>Prices change after assignment</b></td><td><span class="badge warn">medium</span></td><td>totals use current cart price; change badge; history keeps paid price</td></tr>
+      <tr><td><b>Cart edited elsewhere</b></td><td><span class="badge warn">medium</span></td><td>reconcile on every cart view; orphaned assignments flagged, never deleted silently</td></tr>
+      <tr><td><b>Dynamic page updates</b></td><td><span class="badge warn">medium</span></td><td>MutationObserver with debounce; re-read after every retailer update</td></tr>
+      <tr><td><b>Service worker shutdown (MV3)</b></td><td><span class="badge">low</span></td><td>no state in memory; everything in storage</td></tr>
+      <tr><td><b>Web Store review</b></td><td><span class="badge">low</span></td><td>single purpose, minimal permissions, clear privacy policy</td></tr>
+    </tbody>
+  </table></div>
+</div>
+
+<!-- PLAN -->
+<div class="page" id="p-plan">
+  <div class="eyebrow">Plan & quote</div>
+  <h1>Milestones, price, support</h1>
+  <p class="sub">Milestone-based payment. Phase 0 decides whether the rest happens.</p>
+  <div class="panel scroll"><table>
+    <thead><tr><th>Milestone</th><th>Scope</th><th class="r">Days</th><th class="r">Price</th></tr></thead>
+    <tbody>
+      <tr><td><b>0 · Feasibility</b></td><td>PoC on amazon.com, test matrix, go / no-go report</td><td class="r">3</td><td class="r">$400</td></tr>
+      <tr><td><b>1 · Foundation</b></td><td>WXT project, storage schema, side panel, family setup + Household</td><td class="r">2</td><td class="r">$350</td></tr>
+      <tr><td><b>2 · Detection + assignment</b></td><td>Amazon adapter, product/cart reading, "Who is this for?", occasions</td><td class="r">3</td><td class="r">$600</td></tr>
+      <tr><td><b>3 · Family Cart</b></td><td>per-person groups, 3-level selection, live totals</td><td class="r">2</td><td class="r">$450</td></tr>
+      <tr><td><b>4 · Purchase Selected</b></td><td>validated strategy, verification, guided fallback</td><td class="r">3</td><td class="r">$600</td></tr>
+      <tr><td><b>5 · History + storage</b></td><td>mark purchased, history filters, backup export/import</td><td class="r">2</td><td class="r">$350</td></tr>
+      <tr><td><b>6 · QA + release</b></td><td>acceptance test, fixtures, bug fixes, docs, Web Store package</td><td class="r">3</td><td class="r">$550</td></tr>
+      <tr><td><b>MVP total (1–6)</b></td><td class="m">range covers what Phase 0 finds</td><td class="r"><b>15</b></td><td class="r"><b>$2,700–3,200</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="panel scroll"><div class="ph">Optional · not in the MVP price</div><table><tbody>
+      <tr><td>Sync between the user's Chrome browsers (no account)</td><td class="r">$150</td></tr>
+      <tr><td>Right-click "Assign to…" menu</td><td class="r">$80</td></tr>
+      <tr><td>Purchase history CSV export</td><td class="r">$80</td></tr>
+      <tr><td>Cloud accounts (not recommended for V1)</td><td class="r">quote</td></tr>
+    </tbody></table></div>
+    <div class="panel scroll"><div class="ph">Support after launch</div><table><tbody>
+      <tr><td>Bug-fix warranty</td><td class="r">30 days, free</td></tr>
+      <tr><td>Hourly after warranty</td><td class="r">$30/h</td></tr>
+      <tr><td>Retailer watch: weekly fixture run + fix when Amazon changes</td><td class="r">$120/mo, optional</td></tr>
+    </tbody></table></div>
+  </div>
+  <h2>Previous work</h2>
+  <div class="grid g2">
+    <div class="panel pb"><b>Agents.ai Chrome extension</b><p class="m" style="font-size:13px;margin-top:4px">Manifest V3 extension with content scripts and a backend, including a flow on Amazon pages.</p><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><a class="btn sm" href="https://www.loom.com/share/f4db90efe9a543d1b1af7bb5fef99fac" target="_blank" rel="noopener">▶ Demo video</a><a class="btn sm" href="https://www.figma.com/board/oJAVPwwl6luI0YNjCJZ6nC/Agents.ai-Backend-Logic?t=UjpF1dTzlegc2R8k-0" target="_blank" rel="noopener">Backend architecture</a></div></div>
+    <div class="panel pb"><b>Ownership</b><p class="m" style="font-size:13px;margin-top:4px">Repository, Chrome Web Store developer account and all source files are yours from day one. I work in your repo.</p></div>
+  </div>
+</div>
+
+<div class="pager"><button id="prevBtn"><div class="l">Previous</div><div class="t" id="prevT"></div></button><button class="nx" id="nextBtn"><div class="l">Next</div><div class="t" id="nextT"></div></button></div>
+<footer>Family Cart MVP · technical proposal · prepared by Eduardo</footer>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const money=c=>'$'+(c/100).toFixed(2);
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),2200)}
+const OCC=['Everyday','School','Birthday','Christmas','Other'];
+const CATALOG=[
+ ['B0FC1001','Kids running sneakers',4999,'👟'],['B0FC1002','School backpack, navy',2999,'🎒'],['B0FC1003','Fleece hoodie',2899,'🧥'],
+ ['B0FC1004','Basketball shoes',5999,'🏀'],['B0FC1005','Backpack, large',3499,'🎒'],['B0FC1006','Art supplies set',2499,'🎨'],
+ ['B0FC1007','Slim fit jeans',3999,'👖'],['B0FC1008','Building blocks set',3299,'🧱'],['B0FC1009','Insulated water bottle',1299,'🥤'],
+ ['B0FC1010','Kids headphones',3999,'🎧'],['B0FC1011','Pencil case',999,'✏️'],['B0FC1012','Laundry detergent',1849,'🧴']];
+const P=Object.fromEntries(CATALOG.map(([id,t,c,e])=>[id,{id,t,c,e}]));
+let S;
+function fresh(){return{members:[],asg:[],sel:new Set(),rcart:{},hist:[],orderPlaced:false,tab:'cart',pop:null,open:new Set(),log:[],hFilter:'all',seq:1}}
+function initDefault(){S=fresh();S.members=[{id:'hh',name:'Household',order:99,archived:false,fixed:true}];['Emma','Liam','Sophia'].forEach(n=>addMember(n,true));render()}
+function addMember(name,silent){const id='m'+(S.seq++);S.members.push({id,name,order:S.members.filter(m=>!m.fixed).length,archived:false});if(!silent)render();return id}
+function members(all){return S.members.filter(m=>all||!m.archived).sort((a,b)=>a.order-b.order)}
+function mName(id){const m=S.members.find(x=>x.id===id);return m?m.name:'?'}
+function active(){return S.asg.filter(a=>a.status==='active')}
+function rAdd(pid,q=1){S.rcart[pid]=S.rcart[pid]||{qty:0,checked:true};S.rcart[pid].qty+=q}
+function assign(pid,memberId,occ){S.asg.push({id:'a'+(S.seq++),pid,memberId,occ:occ||'',status:'active'});if(!S.rcart[pid]||S.rcart[pid].qty<active().filter(a=>a.pid===pid).length)rAdd(pid,1);}
+function selSummary(){const sel=active().filter(a=>S.sel.has(a.id));const who=[...new Set(sel.map(a=>a.memberId))].map(mName);return{n:sel.length,total:sel.reduce((s,a)=>s+P[a.pid].c,0),who}}
+function alog(s){S.log.unshift(s);if(S.log.length>30)S.log.pop()}
+
+/* ---------- retailer mock ---------- */
+function renderShop(){
+  $('grid').innerHTML=CATALOG.map(([id,t,c,e])=>{const n=active().filter(a=>a.pid===id).length;
+    return `<div class="pc" data-p="${id}"><button class="fc-chip ${n?'set':''}" data-chip="${id}">${n?`✓ ${active().filter(a=>a.pid===id).map(a=>mName(a.memberId)).join(', ')}`:'＋ Family Cart'}</button><div class="img">${e}</div><div class="nm">${t}</div><div class="pr">${money(c)}</div><button class="add" data-add="${id}">Add to cart</button>${S.pop===id?popHTML(id):''}</div>`}).join('');
+  const ids=Object.keys(S.rcart).filter(k=>S.rcart[k].qty>0);
+  $('rlines').innerHTML=ids.length?ids.map(k=>{const l=S.rcart[k],p=P[k];return `<div class="rline" id="rl-${k}"><input type="checkbox" data-rc="${k}" ${l.checked?'checked':''}><span style="font-size:20px">${p.e}</span><span>${p.t}<div class="m" style="font-size:11px">${k}</div></span><span class="mono">Qty ${l.qty}</span><span class="r">${money(p.c*l.qty)}</span></div>`}).join(''):'<div class="m" style="padding:12px;font-size:13px">Cart is empty.</div>';
+  const ch=ids.filter(k=>S.rcart[k].checked);const sub=ch.reduce((s,k)=>s+P[k].c*S.rcart[k].qty,0),cnt=ch.reduce((s,k)=>s+S.rcart[k].qty,0);
+  $('rsub').innerHTML=`Subtotal (${cnt} item${cnt===1?'':'s'}): <b class="mono">${money(sub)}</b>`;
+}
+function popHTML(id){return `<div class="pop"><div class="t">Who is this for?</div><div class="mb">${members().map(m=>`<button data-as="${id}|${m.id}">${m.name}</button>`).join('')}</div><select id="occSel"><option value="">Occasion (optional)</option>${OCC.map(o=>`<option>${o}</option>`).join('')}</select></div>`}
+
+/* ---------- extension panel ---------- */
+function renderPanel(){
+  document.querySelectorAll('.xtabs button').forEach(b=>b.classList.toggle('on',b.dataset.x===S.tab));
+  const xb=$('xb');let h='';
+  if(S.tab==='cart'){const act=active();
+    if(!act.length)h='<p class="m" style="font-size:13px;padding:10px 2px">No items yet. Use <b>＋ Family Cart</b> on a product to assign it to someone.</p>';
+    else{const all=act.every(a=>S.sel.has(a.id));h+=`<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;padding:2px 2px 10px"><input type="checkbox" id="selAll" ${all?'checked':''}> Select entire cart</label>`;
+      members(true).forEach(m=>{const items=act.filter(a=>a.memberId===m.id);if(!items.length)return;const t=items.reduce((s,a)=>s+P[a.pid].c,0),allm=items.every(a=>S.sel.has(a.id)),open=S.open.has(m.id);
+        h+=`<div class="grp"><div class="gh" data-open="${m.id}"><input type="checkbox" data-selm="${m.id}" ${allm?'checked':''}><b>${m.name}</b><span class="s">${items.length} item${items.length>1?'s':''} · ${money(t)} ${open?'▾':'▸'}</span></div>`;
+        if(open)items.forEach(a=>{h+=`<div class="gl"><input type="checkbox" data-sela="${a.id}" ${S.sel.has(a.id)?'checked':''}><span>${P[a.pid].t}${a.occ?`<div class="oc">${a.occ}</div>`:''}</span><span class="p">${money(P[a.pid].c)}</span></div>`});
+        h+='</div>'})}
+    if(S.log.length)h+=`<div class="alog">${S.log.join('<br>')}</div>`}
+  else if(S.tab==='family'){h+=members(true).map((m,i,arr)=>`<div class="mem ${m.archived?'arch':''}"><input data-ren="${m.id}" value="${m.name}" ${m.fixed?'readonly':''}><span class="ac">${m.fixed?'<span class="badge">default</span>':`<button data-up="${m.id}" title="Move up">↑</button><button data-dn="${m.id}" title="Move down">↓</button><button data-arc="${m.id}" title="${m.archived?'Restore':'Archive'}">${m.archived?'↺':'🗄'}</button>`}</span></div>`).join('');
+    h+=`<div style="display:flex;gap:6px;margin-top:8px"><input id="newMem" placeholder="Add family member" style="flex:1;height:32px;border:1px solid var(--line);border-radius:6px;padding:0 10px;font:inherit;font-size:13px"><button class="btn sm pri" id="addMemBtn" style="height:32px">Add</button></div><p class="m" style="font-size:11.5px;margin-top:8px">Only a display name is stored.</p>`}
+  else{const opts=members(true).filter(m=>S.hist.some(x=>x.memberId===m.id));
+    h+=`<select id="hf" style="width:100%;margin-bottom:10px"><option value="all">All family members</option>${opts.map(m=>`<option value="${m.id}" ${S.hFilter===m.id?'selected':''}>${m.name}</option>`).join('')}</select>`;
+    const rows=S.hist.filter(x=>S.hFilter==='all'||x.memberId===S.hFilter);
+    if(!rows.length)h+='<p class="m" style="font-size:13px">No purchases yet.</p>';
+    members(true).forEach(m=>{const r=rows.filter(x=>x.memberId===m.id);if(!r.length)return;h+=`<div class="grp"><div class="gh" style="grid-template-columns:1fr auto;cursor:default"><b>${m.name}</b><span class="s">${money(r.reduce((s,x)=>s+x.c,0))}</span></div><div class="m" style="font-size:11px;padding:0 10px 4px">${r[0].month}</div>${r.map(x=>`<div class="gl" style="grid-template-columns:minmax(0,1fr) auto"><span>${x.t}${x.occ?`<div class="oc">${x.occ}</div>`:''}</span><span class="p">${money(x.c)}</span></div>`).join('')}</div>`})}
+  xb.innerHTML=h;
+  const s=selSummary();
+  $('xf').innerHTML=S.tab==='cart'?`<div class="sel">${s.n} item${s.n===1?'':'s'} selected${s.who.length?' · '+s.who.join(' + '):''}</div><div class="tot">Selected total: ${money(s.total)}</div><div class="row"><button class="btn acc" id="purchaseBtn" ${s.n?'':'disabled'}>Purchase Selected</button><button class="btn" id="markBtn" ${s.n?'':'disabled'}>Mark purchased</button></div>`:'';
+}
+function render(){renderShop();renderPanel()}
+
+/* ---------- actions ---------- */
+async function purchaseSelected(fast){
+  const sel=active().filter(a=>S.sel.has(a.id));if(!sel.length)return null;
+  alog('<b>Purchase Selected</b> · '+sel.length+' items');
+  const need={};sel.forEach(a=>need[a.pid]=(need[a.pid]||0)+1);
+  for(const pid of Object.keys(S.rcart)){if(!need[pid])S.rcart[pid].checked=false}
+  for(const [pid,q] of Object.entries(need)){
+    if(!S.rcart[pid]||S.rcart[pid].qty===0){S.rcart[pid]={qty:q,checked:true};alog('added missing '+pid+' × '+q)}
+    else{const l=S.rcart[pid];if(l.qty!==q){l.reserved=l.qty-q;l.qty=q;alog(`split line ${pid}: qty → ${q}, ${l.reserved} kept for later`)}l.checked=true}
+    if(!fast){renderShop();const el=$('rl-'+pid);if(el){el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),600)}await sleep(160)}}
+  renderShop();
+  const ch=Object.keys(S.rcart).filter(k=>S.rcart[k].checked&&S.rcart[k].qty>0);
+  const cnt=ch.reduce((s,k)=>s+S.rcart[k].qty,0),sub=ch.reduce((s,k)=>s+P[k].c*S.rcart[k].qty,0),exp=sel.reduce((s,a)=>s+P[a.pid].c,0);
+  const ok=cnt===sel.length&&sub===exp;alog(ok?`<b>verified</b> · retailer shows ${cnt} items · ${money(sub)}`:'<b>mismatch</b> · switching to guided mode');
+  renderPanel();if(!fast)toast(ok?'Ready. Finish checkout on the retailer.':'Mismatch: guided mode');
+  return{ok,cnt,sub};
+}
+function markPurchased(){const sel=active().filter(a=>S.sel.has(a.id));if(!sel.length)return;
+  const now=new Date(2026,8,27),month=now.toLocaleString('en-US',{month:'long',year:'numeric'});
+  sel.forEach(a=>{a.status='purchased';S.hist.push({t:P[a.pid].t,c:P[a.pid].c,occ:a.occ,memberId:a.memberId,month});
+    const l=S.rcart[a.pid];if(l){l.qty-=1;if(l.qty<=0){l.qty=l.reserved||0;l.reserved=0;l.checked=true}}});
+  S.sel.clear();alog('<b>marked purchased</b> · '+sel.length+' items moved to history');render()}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const chip=t.closest('[data-chip]');if(chip){S.pop=S.pop===chip.dataset.chip?null:chip.dataset.chip;renderShop();return}
+  const as=t.closest('[data-as]');if(as){const [pid,mid]=as.dataset.as.split('|');const occ=($('occSel')||{}).value;assign(pid,mid,occ);S.pop=null;S.open.add(mid);alog(`assigned ${P[pid].t} → <b>${mName(mid)}</b>`);render();return}
+  const add=t.closest('[data-add]');if(add){rAdd(add.dataset.add);renderShop();toast('Added to retailer cart');return}
+  if(!t.closest('.pop')&&!t.closest('[data-chip]')&&S.pop){S.pop=null;renderShop()}
+  const tab=t.closest('[data-x]');if(tab){S.tab=tab.dataset.x;renderPanel();return}
+  const op=t.closest('[data-open]');if(op&&!t.matches('input')){const id=op.dataset.open;S.open.has(id)?S.open.delete(id):S.open.add(id);renderPanel();return}
+  if(t.id==='purchaseBtn'){purchaseSelected(false);return}
+  if(t.id==='markBtn'){markPurchased();toast('Moved to Purchase History');return}
+  if(t.id==='checkoutBtn'){toast('This is the retailer\u2019s own button. Family Cart never presses it.');return}
+  if(t.id==='deselAll'){Object.values(S.rcart).forEach(l=>l.checked=false);renderShop();return}
+  if(t.id==='addMemBtn'){const v=$('newMem').value.trim();if(v){addMember(v)}return}
+  const up=t.closest('[data-up]'),dn=t.closest('[data-dn]');if(up||dn){const id=(up||dn).dataset[up?'up':'dn'];const list=members(true).filter(m=>!m.fixed);const i=list.findIndex(m=>m.id===id),j=up?i-1:i+1;if(j>=0&&j<list.length){const o=list[i].order;list[i].order=list[j].order;list[j].order=o}render();return}
+  const arc=t.closest('[data-arc]');if(arc){const m=S.members.find(x=>x.id===arc.dataset.arc);m.archived=!m.archived;render();return}
+});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset.rc){S.rcart[t.dataset.rc].checked=t.checked;renderShop();return}
+  if(t.id==='selAll'){active().forEach(a=>t.checked?S.sel.add(a.id):S.sel.delete(a.id));renderPanel();return}
+  if(t.dataset.selm){active().filter(a=>a.memberId===t.dataset.selm).forEach(a=>t.checked?S.sel.add(a.id):S.sel.delete(a.id));S.open.add(t.dataset.selm);renderPanel();return}
+  if(t.dataset.sela){t.checked?S.sel.add(t.dataset.sela):S.sel.delete(t.dataset.sela);renderPanel();return}
+  if(t.dataset.ren){const m=S.members.find(x=>x.id===t.dataset.ren);if(t.value.trim())m.name=t.value.trim();render();return}
+  if(t.id==='hf'){S.hFilter=t.value;renderPanel()}});
+$('resetBtn').addEventListener('click',()=>{initDefault();$('atList').innerHTML='<p class="m" style="font-size:13px;padding:6px 0">Demo reset.</p>'});
+
+/* ---------- acceptance test ---------- */
+async function runAT(){const btn=$('atBtn');btn.disabled=true;S=fresh();S.members=[{id:'hh',name:'Household',order:99,archived:false,fixed:true}];S.tab='cart';render();
+  const steps=[];const L=$('atList');L.innerHTML='';
+  function step(txt){const el=document.createElement('div');el.className='at run';el.innerHTML=`<span class="b"></span><div><div>${txt}</div><div class="d"></div></div>`;L.appendChild(el);return{pass(d){el.className='at pass';el.querySelector('.b').textContent='✓';el.querySelector('.d').textContent=d||''},fail(d){el.className='at fail';el.querySelector('.b').textContent='✕';el.querySelector('.d').textContent=d||''}}}
+  let s=step('Create five family members');await sleep(300);const ids={};['Emma','Liam','Sophia','Noah','Mia'].forEach(n=>ids[n]=addMember(n,true));render();
+  members().filter(m=>!m.fixed).length===5?s.pass('Emma, Liam, Sophia, Noah, Mia'):s.fail();
+  s=step('Add 10 products and assign 3 / 2 / 2 / 1 / 2');const plan=[['Emma',['B0FC1001','B0FC1002','B0FC1003']],['Liam',['B0FC1004','B0FC1005']],['Sophia',['B0FC1006','B0FC1007']],['Noah',['B0FC1008']],['Mia',['B0FC1009','B0FC1010']]];
+  for(const [n,ps] of plan){for(const p of ps){assign(p,ids[n],'School');S.open.add(ids[n]);render();await sleep(110)}}
+  active().length===10?s.pass('10 assignments, 10 retailer cart lines'):s.fail();
+  s=step('Each person shows the right products and totals');await sleep(250);let okT=true,det=[];
+  for(const [n,ps] of plan){const exp=ps.reduce((x,p)=>x+P[p].c,0);const got=active().filter(a=>a.memberId===ids[n]).reduce((x,a)=>x+P[a.pid].c,0);if(exp!==got)okT=false;det.push(`${n} ${money(got)}`)}
+  okT?s.pass(det.join(' · ')):s.fail(det.join(' · '));
+  s=step('Select 2 Emma, 1 Liam, 2 Sophia');await sleep(250);const pick=[...active().filter(a=>a.memberId===ids.Emma).slice(0,2),...active().filter(a=>a.memberId===ids.Liam).slice(0,1),...active().filter(a=>a.memberId===ids.Sophia).slice(0,2)];
+  pick.forEach(a=>S.sel.add(a.id));renderPanel();const sm=selSummary(),expTot=pick.reduce((x,a)=>x+P[a.pid].c,0);
+  (sm.n===5&&sm.total===expTot)?s.pass(`5 products selected · ${money(sm.total)} (expected ${money(expTot)})`):s.fail(`${sm.n} · ${money(sm.total)}`);
+  s=step('Purchase Selected prepares only those 5 in the retailer cart');const r=await purchaseSelected(false);
+  r&&r.ok?s.pass(`retailer cart: ${r.cnt} checked · ${money(r.sub)}`):s.fail('mismatch');
+  s=step('No order placed by the extension');await sleep(250);S.orderPlaced===false?s.pass('checkout left to the user'):s.fail();
+  s=step('User completes checkout, then marks the 5 as purchased');await sleep(400);markPurchased();
+  active().length===5?s.pass('5 remain active'):s.fail(active().length+' active');
+  s=step('Purchase History shows them under the right people');S.tab='history';render();await sleep(300);
+  const hEmma=S.hist.filter(x=>x.memberId===ids.Emma).length,hLiam=S.hist.filter(x=>x.memberId===ids.Liam).length,hSoph=S.hist.filter(x=>x.memberId===ids.Sophia).length;
+  (hEmma===2&&hLiam===1&&hSoph===2&&S.hist.length===5)?s.pass('Emma 2 · Liam 1 · Sophia 2'):s.fail(`Emma ${hEmma} · Liam ${hLiam} · Sophia ${hSoph}`);
+  const allPass=[...L.querySelectorAll('.at')].every(x=>x.classList.contains('pass'));
+  L.insertAdjacentHTML('beforeend',`<div class="fb ${allPass?'ok':'no'}" style="margin:10px 0 6px">${allPass?'Acceptance test passed: 8 of 8 checks.':'Acceptance test failed.'}</div>`);btn.disabled=false}
+$('atBtn').addEventListener('click',runAT);
+
+/* ---------- architecture diagram ---------- */
+(function(){const B=(x,y,w,h,t,s,dark,dash)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${dark?'#111':'#fff'}" stroke="${dark?'#111':'#cfcfcf'}" ${dash?'stroke-dasharray="5 4"':''}/><text x="${x+w/2}" y="${y+h/2-3}" text-anchor="middle" font-size="13" font-weight="600" fill="${dark?'#fff':'#111'}">${t}</text><text x="${x+w/2}" y="${y+h/2+14}" text-anchor="middle" font-size="10.5" fill="${dark?'#bbb':'#6b6b6b'}">${s}</text>`;
+  let s=`<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L10,5L0,10z" fill="#666"/></marker></defs>`;
+  s+=B(20,30,190,60,'Side panel UI','Preact · family · cart · history')+B(20,120,190,60,'Service worker','messaging · storage writes')+B(20,210,190,60,'chrome.storage.local','Zod schema · migrations');
+  s+=B(280,90,220,120,'Family Cart Core','members · assignments · selection · totals (cents)',true);
+  s+=B(580,30,180,60,'RetailerAdapter','interface');
+  s+=B(580,130,180,56,'Amazon adapter','content script · amazon.com')+B(790,130,180,56,'Walmart adapter','future','','dash')+B(790,210,180,56,'Target adapter','future','','dash');
+  s+=`<g stroke="#666" stroke-width="1.3" fill="none" marker-end="url(#a)"><path d="M210,60 L278,120"/><path d="M210,150 H278"/><path d="M210,240 L278,180"/><path d="M500,120 L578,70"/><path d="M670,90 V128"/><path d="M760,158 H788"/><path d="M760,158 L788,232"/></g>`;
+  s+=`<text x="580" y="230" font-size="11" fill="#6b6b6b">Only adapters read or change</text><text x="580" y="246" font-size="11" fill="#6b6b6b">retailer pages.</text><text x="280" y="236" font-size="11" fill="#6b6b6b">No DOM access, fully unit-tested.</text>`;
+  $('archSvg').innerHTML=s})();
+
+/* ---------- nav ---------- */
+const PAGES=[['Start',[['overview','Overview'],['demo','Prototype',true]]],['Technical',[['phase0','Phase 0'],['arch','Architecture'],['privacy','Permissions'],['risks','Risks']]],['Commercial',[['plan','Plan & quote']]]];
+const FLAT=PAGES.flatMap(g=>g[1]);
+$('side').innerHTML=PAGES.map(([g,items])=>`<h6>${g}</h6>`+items.map(([id,n,live])=>{const i=FLAT.findIndex(f=>f[0]===id);return `<button class="nav" data-go="${id}"><span class="n">${String(i+1).padStart(2,'0')}</span>${n}${live?'<span class="live">live</span>':''}</button>`}).join('')).join('');
+let CUR=0;
+function go(id,push=true){const i=Math.max(0,FLAT.findIndex(f=>f[0]===id));CUR=i;
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id==='p-'+FLAT[i][0]));
+  document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('on',b.dataset.go===FLAT[i][0]));
+  const pv=FLAT[i-1],nx=FLAT[i+1];$('prevBtn').hidden=!pv;$('nextBtn').hidden=!nx;if(pv)$('prevT').textContent=pv[1];if(nx)$('nextT').textContent=nx[1];
+  const nb=document.querySelector('.nav.on');if(nb&&window.innerWidth<=900)nb.scrollIntoView({block:'nearest',inline:'center'});
+  if(push){try{history.replaceState(null,'','#'+FLAT[i][0])}catch(e){}window.scrollTo({top:0})}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){e.preventDefault();go(b.dataset.go)}});
+$('prevBtn').addEventListener('click',()=>go(FLAT[Math.max(0,CUR-1)][0]));
+$('nextBtn').addEventListener('click',()=>go(FLAT[Math.min(FLAT.length-1,CUR+1)][0]));
+let H='';try{H=location.hash.slice(1)}catch(e){}
+go(FLAT.some(f=>f[0]===H)?H:'overview',false);
+initDefault();
+</script>
+</body>
+</html>
